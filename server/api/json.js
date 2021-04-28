@@ -2,6 +2,11 @@ const router = require('express').Router()
 const {Json} = require('../db/models')
 module.exports = router
 
+router.use((req, res, next) => {
+  res.setHeader('access-control-allow-origin', '*')
+  next()
+})
+
 router.get('/:jsonUUID', async (req, res, next) => {
   try {
     const json = await Json.findByPk(req.params.jsonUUID, {
