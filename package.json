@@ -1,7 +1,7 @@
 {
-  "name": "boilermaker",
+  "name": "poporopo",
   "version": "2.0.0",
-  "description": "Some boilerplate code to get you started - get shakin'!",
+  "description": "JSON DB API Hosting",
   "engines": {
     "node": "~12.11.1"
   },
@@ -41,7 +41,7 @@
   "author": "Fullstack Academy of Code",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.0",
+
     "compression": "^1.7.3",
     "connect-session-sequelize": "^6.0.0",
     "express": "^4.16.4",
@@ -57,11 +57,9 @@
     "react-dom": "^16.8.6",
     "react-redux": "^7.0.1",
     "react-router-dom": "^5.0.0",
-    "redux": "^4.0.1",
-    "redux-logger": "^3.0.6",
-    "redux-thunk": "^2.3.0",
-    "sequelize": "^5.3.1",
-    "socket.io": "^2.2.0"
+    "react-syntax-highlighter": "^15.4.3",
+
+    "sequelize": "^5.22.4"
   },
   "devDependencies": {
     "@babel/core": "^7.4.3",
@@ -93,11 +91,10 @@
     "lint-staged": "^8.1.5",
     "mocha": "^6.1.4",
     "nodemon": "^1.18.3",
-    "npm-merge-driver": "^2.3.5",
+    "npm-merge-driver": "^2.3.6",
     "prettier": "1.11.1",
     "react-test-renderer": "^16.4.2",
     "redux-devtools-extension": "^2.13.5",
-    "redux-mock-store": "^1.5.3",
     "simple-git": "^1.121.0",
     "supertest": "^4.0.2",
     "webpack": "^4.16.4",
