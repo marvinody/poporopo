@@ -12,6 +12,11 @@ router.get('/:jsonUUID', async (req, res, next) => {
     const json = await Json.findByPk(req.params.jsonUUID, {
       attributes: ['data']
     })
+
+    if (!json) {
+      throw new Error(`Could not find Data with ID of ${req.params.jsonUUID}`)
+    }
+
     res.json(json.data)
   } catch (err) {
     next(err)
@@ -33,6 +38,10 @@ router.put('/:jsonUUID', async (req, res, next) => {
     const json = await Json.findByPk(req.params.jsonUUID, {
       attributes: ['apikey', 'id']
     })
+
+    if (!json) {
+      throw new Error(`Could not find Data with ID of ${req.params.jsonUUID}`)
+    }
 
     console.log({
       model: json.apikey,
