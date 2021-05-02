@@ -1,0 +1,175 @@
+{
+  "info": {
+    "_postman_id": "c3f48685-03d1-4802-8635-4968771eb3aa",
+    "name": "poporopo",
+    "schema":
+      "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Deployed",
+      "item": [
+        {
+          "name": "GET json Copy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8080/api/json/:jsonUUID",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "json", ":jsonUUID"],
+              "variable": [
+                {
+                  "key": "jsonUUID",
+                  "value": "85fc01c0-3f5e-43dd-9c4d-631545647fe9"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create JSON Copy",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"dummyData\": \"yo what up\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://poporopo.deploy.sadpanda.moe/api/json/",
+              "protocol": "https",
+              "host": ["poporopo", "deploy", "sadpanda", "moe"],
+              "path": ["api", "json", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update JSON Copy",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "x-apikey",
+                "value":
+                  "622b51ea8231442ad6cad032a28859ff6f6d2a9aa523e428ad428539199f373b",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw":
+                "{\n    \"dummyData\": \"yo what up\",\n    \"withNew\": \"data\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://poporopo.deploy.sadpanda.moe/api/json/:jsonUUID",
+              "protocol": "https",
+              "host": ["poporopo", "deploy", "sadpanda", "moe"],
+              "path": ["api", "json", ":jsonUUID"],
+              "variable": [
+                {
+                  "key": "jsonUUID",
+                  "value": "d86658c8-63ad-40c8-b92e-87063a327781"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "GET json",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "localhost:8080/api/json/:jsonUUID",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "json", ":jsonUUID"],
+          "variable": [
+            {
+              "key": "jsonUUID",
+              "value": "85fc01c0-3f5e-43dd-9c4d-631545647fe9"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create JSON",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"dummyData\": \"yo what up\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/api/json/",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "json", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update JSON",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "x-apikey",
+            "value":
+              "7251a8a0a9a59b0e289d342465b1d006f9fc61201457ed26a99b6068dfdd86f7",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw":
+            "{\n    \"dummyData\": \"yo what up\",\n    \"withNew\": \"data\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/api/json/:jsonUUID",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "json", ":jsonUUID"],
+          "variable": [
+            {
+              "key": "jsonUUID",
+              "value": "2ee52d29-ef5a-4faf-a794-f3803159adfa"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
