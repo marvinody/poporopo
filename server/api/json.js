@@ -18,6 +18,40 @@ router.get('/:jsonUUID', async (req, res, next) => {
   }
 })
 
+router.put('/:jsonUUID', async (req, res, next) => {
+  try {
+    if (!req.body) {
+      throw new Error('Need to pass a JSON body')
+    }
+
+    if (!req.headers['x-apikey']) {
+      throw new Error('Need to pass an apikey in header as "x-apikey"')
+    }
+
+    const apikey = req.headers['x-apikey']
+
+    const json = await Json.findByPk(req.params.jsonUUID, {
+      attributes: ['apikey', 'id']
+    })
+
+    console.log({
+      model: json.apikey,
+      apikey
+    })
+
+    if (json.apikey !== apikey) {
+      throw new Error(
+        'Mismatching apikey for given JSON ID, make sure this is your resource'
+      )
+    }
+
+    const newJson = await json.update({data: req.body})
+    res.json(newJson.data)
+  } catch (err) {
+    next(err)
+  }
+})
+
 router.post('/', async (req, res, next) => {
   try {
     if (!req.body) {
