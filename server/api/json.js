@@ -7,7 +7,12 @@ const {addIDs, customTypeof} = require('./util')
 module.exports = router
 
 router.use((req, res, next) => {
-  res.setHeader('access-control-allow-origin', '*')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    'GET, POST, OPTIONS, DELETE, PUT'
+  )
   next()
 })
 
