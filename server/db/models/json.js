@@ -13,6 +13,9 @@ const JSON = db.define('json', {
   },
   apikey: {
     type: Sequelize.STRING(64)
+  },
+  highestCreatedId: {
+    type: Sequelize.INTEGER
   }
 })
 
