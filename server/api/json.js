@@ -8,7 +8,7 @@ module.exports = router
 
 router.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-apikey')
   res.setHeader(
     'Access-Control-Allow-Methods',
     'GET, POST, OPTIONS, DELETE, PUT'
