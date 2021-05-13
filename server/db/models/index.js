@@ -1,4 +1,3 @@
-const User = require('./user')
 const Json = require('./json')
 
 /**
@@ -15,6 +14,5 @@ const Json = require('./json')
  * instead of: const User = require('../db/models/user')
  */
 module.exports = {
-  User,
   Json
 }

@@ -58,7 +58,12 @@ router.put('/:jsonUUID', async (req, res, next) => {
       )
     }
 
-    const newJson = await json.update({data: req.body})
+    const {obj, maxId} = addIDs(req.body)
+
+    const newJson = await json.update({
+      data: obj,
+      highestCreatedId: maxId
+    })
     res.json(newJson.data)
   } catch (err) {
     next(err)
@@ -79,7 +84,7 @@ router.post('/', async (req, res, next) => {
       highestCreatedId: maxId
     })
 
-    res.json(json)
+    res.status(201).json(json)
   } catch (err) {
     next(err)
   }
@@ -130,6 +135,7 @@ router.post('/:jsonUUID/*', async (req, res, next) => {
       console.log(newFullData)
     }
 
+    res.status(201).json(obj)
     res.json(obj)
   } catch (err) {
     next(err)
