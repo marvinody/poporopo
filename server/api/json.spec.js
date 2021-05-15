@@ -301,6 +301,229 @@ describe('JSON routes', () => {
             .which.has.lengthOf(2)
         })
       })
+      describe('Root entry of array', () => {
+        beforeEach(async () => {
+          dummyRow = await Json.create({
+            data: [
+              {
+                dumb: 'object',
+                id: 1
+              }
+            ],
+            highestCreatedId: 2
+          })
+        })
+
+        it('POST /api/json/:jsonUUID/', async () => {
+          const newsObject = {
+            title: 'some random title',
+            content: 'some shitty news story'
+          }
+          const res = await request(app)
+            .post(`/api/json/${dummyRow.id}/`)
+            .set({
+              'x-apikey': dummyRow.apikey
+            })
+            .send(newsObject)
+            .expect(201)
+
+          expect(res.body).to.deep.equal({
+            ...newsObject,
+            id: 2
+          })
+
+          await dummyRow.reload()
+
+          expect(dummyRow).to.have.property('highestCreatedId', 3)
+          expect(dummyRow.data)
+            .to.be.an('array')
+            .which.has.lengthOf(2)
+        })
+
+        it('400 - /api/json/:jsonUUID/ - Non Array', async () => {
+          const newsObject = {
+            title: 'some random title',
+            content: 'some shitty news story'
+          }
+          const res = await request(app)
+            .post(`/api/json/${dummyRow.id}/1`)
+            .set({
+              'x-apikey': dummyRow.apikey
+            })
+            .send(newsObject)
+            .expect(400)
+
+          expect(res.body).to.deep.equal({
+            error: 'Cannot POST to a non-array'
+          })
+
+          const preReloadData = dummyRow.data
+          await dummyRow.reload()
+
+          expect(dummyRow).to.have.property('highestCreatedId', 2)
+          expect(dummyRow.data).to.deep.equal(preReloadData)
+        })
+
+        it('400 - /api/json/:jsonUUID/ - Bad ID', async () => {
+          const newsObject = {
+            title: 'some random title',
+            content: 'some shitty news story'
+          }
+          const res = await request(app)
+            .post(`/api/json/${dummyRow.id}/2`)
+            .set({
+              'x-apikey': dummyRow.apikey
+            })
+            .send(newsObject)
+            .expect(400)
+
+          expect(res.body).to.deep.equal({
+            error: 'Unfound array element by id: "2"'
+          })
+
+          const preReloadData = dummyRow.data
+          await dummyRow.reload()
+
+          expect(dummyRow).to.have.property('highestCreatedId', 2)
+          expect(dummyRow.data).to.deep.equal(preReloadData)
+        })
+
+        it('400 - /api/json/:jsonUUID/ - Bad Object Prop', async () => {
+          const newsObject = {
+            title: 'some random title',
+            content: 'some shitty news story'
+          }
+          const res = await request(app)
+            .post(`/api/json/${dummyRow.id}/1/badKey`)
+            .set({
+              'x-apikey': dummyRow.apikey
+            })
+            .send(newsObject)
+            .expect(400)
+
+          expect(res.body).to.deep.equal({
+            error: 'Unfound object property by key: "badKey"'
+          })
+
+          const preReloadData = dummyRow.data
+          await dummyRow.reload()
+
+          expect(dummyRow).to.have.property('highestCreatedId', 2)
+          expect(dummyRow.data).to.deep.equal(preReloadData)
+        })
+
+        it('400 - /api/json/:jsonUUID/ - Bad Value Error', async () => {
+          const newsObject = {
+            title: 'some random title',
+            content: 'some shitty news story'
+          }
+          const res = await request(app)
+            .post(`/api/json/${dummyRow.id}/1/dumb/badKey`)
+            .set({
+              'x-apikey': dummyRow.apikey
+            })
+            .send(newsObject)
+            .expect(400)
+
+          expect(res.body).to.deep.equal({
+            error: 'Path Access Error!'
+          })
+
+          const preReloadData = dummyRow.data
+          await dummyRow.reload()
+
+          expect(dummyRow).to.have.property('highestCreatedId', 2)
+          expect(dummyRow.data).to.deep.equal(preReloadData)
+        })
+      })
+
+      describe('Nested entry of object', () => {
+        beforeEach(async () => {
+          dummyRow = await Json.create({
+            data: {
+              posts: [
+                {
+                  id: 1,
+                  name: 'yo wat up',
+                  comments: [
+                    {
+                      id: 2,
+                      text: 'good test',
+                      likes: [],
+                      replies: [
+                        {
+                          id: 'dumb-username',
+                          content: 'yes',
+                          mentions: []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            highestCreatedId: 3
+          })
+        })
+
+        it('POST /api/json/:jsonUUID/<nestedResource>', async () => {
+          const likeObject = {
+            name: 'some random name'
+          }
+          const res = await request(app)
+            .post(`/api/json/${dummyRow.id}/posts/1/comments/2/likes`)
+            .set({
+              'x-apikey': dummyRow.apikey
+            })
+            .send(likeObject)
+            .expect(201)
+          await dummyRow.reload()
+
+          console.log(JSON.stringify(dummyRow.data, null, 2))
+
+          expect(res.body).to.deep.equal({
+            ...likeObject,
+            id: 3
+          })
+
+          expect(dummyRow).to.have.property('highestCreatedId', 4)
+          expect(dummyRow)
+            .to.have.nested.property('data.posts[0].comments[0].likes')
+            .which.is.an('array')
+            .which.has.lengthOf(1)
+        })
+
+        it('POST /api/json/:jsonUUID/<nestedResource>', async () => {
+          const mention = {
+            user: '@everyone'
+          }
+          const res = await request(app)
+            .post(
+              `/api/json/${
+                dummyRow.id
+              }/posts/1/comments/2/replies/dumb-username/mentions`
+            )
+            .set({
+              'x-apikey': dummyRow.apikey
+            })
+            .send(mention)
+            .expect(201)
+          await dummyRow.reload()
+
+          expect(res.body).to.deep.equal({
+            ...mention,
+            id: 3
+          })
+
+          expect(dummyRow).to.have.property('highestCreatedId', 4)
+          expect(dummyRow)
+            .to.have.nested.property(
+              'data.posts[0].comments[0].replies[0].mentions'
+            )
+            .which.is.an('array')
+            .which.has.lengthOf(1)
+        })
+      })
     })
   })
 })
