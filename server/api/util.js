@@ -50,7 +50,37 @@ const addIDs = (obj, startingId = 1, startingParent = null) => {
   return {obj, maxId: id}
 }
 
+const setWith = (obj, path, value) => {
+  if (path.length === 0) {
+    return value
+  }
+
+  const typeOf = customTypeof(obj)
+
+  const curKey = path[0]
+
+  if (typeOf === 'array') {
+    return obj.map(el => {
+      if (el.id == curKey) {
+        return setWith(el, path.slice(1), value)
+      }
+      return el
+    })
+  } else if (typeOf === 'object') {
+    const kv = Object.entries(obj)
+    const newPairs = kv.map(([k, v]) => {
+      if (k == curKey) {
+        return [k, setWith(v, path.slice(1), value)]
+      }
+      return [k, v]
+    })
+
+    return Object.fromEntries(newPairs)
+  }
+}
+
 module.exports = {
   addIDs,
-  customTypeof
+  customTypeof,
+  setWith
 }

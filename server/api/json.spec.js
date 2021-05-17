@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 /* global describe beforeEach it */
 
 const {expect} = require('chai')
@@ -479,8 +480,6 @@ describe('JSON routes', () => {
             .expect(201)
           await dummyRow.reload()
 
-          console.log(JSON.stringify(dummyRow.data, null, 2))
-
           expect(res.body).to.deep.equal({
             ...likeObject,
             id: 3
@@ -523,6 +522,257 @@ describe('JSON routes', () => {
             .which.is.an('array')
             .which.has.lengthOf(1)
         })
+      })
+    })
+
+    describe('DELETE /api/json/:jsonUUID/', () => {
+      it('DELETE /api/json/:jsonUUID', async () => {
+        dummyRow = await Json.create({
+          data: {
+            thing: 'stuff'
+          }
+        })
+
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          deleted: {
+            thing: 'stuff'
+          }
+        })
+        const foundRow = await Json.findByPk(dummyRow.id)
+        expect(foundRow, 'Should not be able to find row in databose').to.not.be
+          .ok
+      })
+
+      it('400 - DELETE /api/json/:jsonUUID - bad jsonUUID', async () => {
+        dummyRow = await Json.create({
+          data: {
+            thing: 'stuff'
+          }
+        })
+
+        const res = await request(app)
+          .delete(`/api/json/${fakeUUID}`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .expect(400)
+
+        expect(res.body).to.deep.equal({
+          error: `Could not find Data with ID of ${fakeUUID}`
+        })
+      })
+
+      it('400 - DELETE /api/json/:jsonUUID - bad apikey', async () => {
+        dummyRow = await Json.create({
+          data: {
+            thing: 'stuff'
+          }
+        })
+
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}`)
+          .set({
+            'x-apikey': 'bad-apikey'
+          })
+          .expect(400)
+
+        expect(res.body).to.deep.equal({
+          error:
+            'Mismatching apikey for given JSON ID, make sure this is your resource'
+        })
+      })
+
+      it('400 - DELETE /api/json/:jsonUUID - missing apikey', async () => {
+        dummyRow = await Json.create({
+          data: {
+            thing: 'stuff'
+          }
+        })
+
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}`)
+          .expect(400)
+
+        expect(res.body).to.deep.equal({
+          error: 'Need to pass an apikey in header as "x-apikey"'
+        })
+      })
+    })
+
+    describe('DELETE /api/json/:jsonUUID/<nestedResource>', () => {
+      beforeEach(async () => {
+        dummyRow = await Json.create({
+          data: {
+            news: [],
+            posts: [
+              {
+                id: 1,
+                name: 'yo wat up',
+                comments: [
+                  {
+                    id: 2,
+                    text: 'good test',
+                    likes: []
+                  }
+                ]
+              }
+            ]
+          },
+          highestCreatedId: 3
+        })
+      })
+
+      it('DELETE /api/json/:jsonUUID/<nestedResource> - root array element', async () => {
+        dummyRow = await Json.create({
+          data: [{id: 1, username: 'first'}, {id: 2, username: 'second'}],
+          highestCreatedId: 3
+        })
+
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}/2`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .expect(200)
+
+        const expectedDelete = dummyRow.data[1]
+
+        expect(res.body).to.deep.equal({deleted: expectedDelete})
+
+        await dummyRow.reload()
+
+        expect(dummyRow).to.have.property('highestCreatedId', 3)
+        expect(dummyRow.data).to.deep.equal([{id: 1, username: 'first'}])
+      })
+
+      it('DELETE /api/json/:jsonUUID/<nestedResource> - nested array element', async () => {
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}/posts/1/comments/2`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .expect(200)
+
+        const expectedDelete = dummyRow.data.posts[0].comments[0]
+
+        expect(res.body).to.deep.equal({deleted: expectedDelete})
+
+        await dummyRow.reload()
+
+        expect(dummyRow).to.have.property('highestCreatedId', 3)
+        expect(dummyRow)
+          .to.have.nested.property('data.posts[0].comments')
+          .which.is.an('array')
+          .which.has.lengthOf(0)
+      })
+
+      it('DELETE /api/json/:jsonUUID/<nestedResource> - root object property', async () => {
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}/posts/`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          deleted: [
+            {
+              id: 1,
+              name: 'yo wat up',
+              comments: [
+                {
+                  id: 2,
+                  text: 'good test',
+                  likes: []
+                }
+              ]
+            }
+          ]
+        })
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data).to.not.have.property('posts')
+        expect(dummyRow.data)
+          .to.have.property('news')
+          .which.is.an('array')
+          .which.has.lengthOf(0)
+      })
+
+      it('DELETE /api/json/:jsonUUID/<nestedResource> - nested object property', async () => {
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}/posts/1/comments`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          deleted: [
+            {
+              id: 2,
+              text: 'good test',
+              likes: []
+            }
+          ]
+        })
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data).to.deep.equal({
+          news: [],
+          posts: [
+            {
+              id: 1,
+              name: 'yo wat up'
+            }
+          ]
+        })
+      })
+
+      it('400 - DELETE /api/json/:jsonUUID/<nestedResource> - missing array element', async () => {
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}/posts/1/comments/3`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .expect(400)
+
+        expect(res.body).to.deep.equal({
+          error: 'Unfound array element by id: "3"'
+        })
+
+        const preDummy = dummyRow.data
+        await dummyRow.reload()
+
+        expect(dummyRow).to.have.property('highestCreatedId', 3)
+        expect(dummyRow.data).to.deep.equal(preDummy)
+      })
+
+      it('400 - DELETE /api/json/:jsonUUID/<nestedResource> - missing object property', async () => {
+        const res = await request(app)
+          .delete(`/api/json/${dummyRow.id}/posts/1/user`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .expect(400)
+
+        expect(res.body).to.deep.equal({
+          error: 'Unfound object property by key: "user"'
+        })
+
+        const preDummy = dummyRow.data
+        await dummyRow.reload()
+
+        expect(dummyRow).to.have.property('highestCreatedId', 3)
+        expect(dummyRow.data).to.deep.equal(preDummy)
       })
     })
   })
