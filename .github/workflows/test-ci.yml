@@ -13,14 +13,7 @@ jobs:
         run: |
           sudo systemctl start postgresql.service
           pg_isready
-      - name: Create Test User
-        run: |
           sudo -u postgres createuser --superuser $USER
-      - name: Create Test Database
-        run: |
-          sudo -u postgres createdb --owner=$USER poporopo-test
-      - name: Attempt Connection
-        run: |
-          psql -U $USER -w -d poporopo-test -h localhost -c "SELECT version()"
+          sudo -u postgres createdb poporopo-test
       - run: npm ci
       - run: npm run test
