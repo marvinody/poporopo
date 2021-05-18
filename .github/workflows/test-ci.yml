@@ -4,22 +4,27 @@ on: [pull_request]
 jobs:
   Test:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
           node-version: '14'
-      # - name: Setup PostgreSQL
-      #   uses: Harmon758/postgresql-action@v1.0.0
-      #   with:
-      #     postgresql version: '10'
-      #     postgresql db: 'poporopo-test'
-      #     # postgresql user: 'runner'
+
       - name: Start PostgreSQL on Ubuntu
         run: |
           sudo systemctl start postgresql.service
           pg_isready
-          sudo -u postgres createdb poporopo-test
+      # Change user name and password to meet your requirements
+      - name: Create additional user
+        run: |
+          sudo -u postgres psql --command="CREATE USER runner PASSWORD ''" --command="\du"
+      # Change database name to meet your requirements
+      - name: Create additional database
+        run: |
+          sudo -u postgres createdb --owner=runner poporopo-test
+          PGPASSWORD='' psql --username=runner --host=localhost --list timetable
+
       - run: npm ci
       - run: npm run test
         env:
