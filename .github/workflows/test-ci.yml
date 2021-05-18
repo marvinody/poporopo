@@ -18,7 +18,7 @@ jobs:
       # Change user name and password to meet your requirements
       - name: Create additional user
         run: |
-          sudo -u postgres psql --command="CREATE USER runner PASSWORD ''" --command="\du"
+          sudo -u postgres psql --command="CREATE USER runner PASSWORD NULL" --command="\du"
       # Change database name to meet your requirements
       - name: Create additional database
         run: |
