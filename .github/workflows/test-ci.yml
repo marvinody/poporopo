@@ -12,8 +12,7 @@ jobs:
         with:
           postgresql version: '11'
           postgresql db: 'test-db'
-          postgresql user: root
-          postgresql password: albino
+          postgresql user: runner
       - run: npm ci
       - run: npm run test
         env:
