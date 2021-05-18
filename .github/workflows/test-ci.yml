@@ -1,5 +1,11 @@
 name: Test
-on: [pull_request, push]
+
+on:
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
+
 jobs:
   Test:
     runs-on: ubuntu-latest
@@ -8,12 +14,13 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: '14'
-      - uses: harmon758/postgresql-action@v1
-        with:
-          postgresql version: '11'
-          postgresql db: 'test-db'
-          postgresql user: runner
+      - name: Start PostgreSQL on Ubuntu
+        run: |
+          sudo systemctl start postgresql.service
+          pg_isready
+      # Change user name and password to meet your requirements
+      - name: Create additional user
+        run: |
+          sudo -u postgres psql --command="CREATE USER runner" --command="\du"
       - run: npm ci
       - run: npm run test
-        env:
-          DATABASE_URL: 'postgresql://root:albino@localhost:5432/test-db'
