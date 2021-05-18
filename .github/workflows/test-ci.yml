@@ -19,5 +19,8 @@ jobs:
       - name: Create Test Database
         run: |
           sudo -u postgres createdb --owner=$USER poporopo-test
+      - name: Attempt Connection
+        run: |
+          psql -U $USER -d poporopo-test -h localhost -c "SELECT version()"
       - run: npm ci
       - run: npm run test
