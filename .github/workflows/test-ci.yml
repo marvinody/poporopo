@@ -23,7 +23,6 @@ jobs:
       - name: Create additional database
         run: |
           sudo -u postgres createdb --owner=runner poporopo-test
-          PGPASSWORD='' psql --username=runner --host=localhost --list timetable
 
       - run: npm ci
       - run: npm run test
