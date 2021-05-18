@@ -26,5 +26,3 @@ jobs:
 
       - run: npm ci
       - run: npm run test
-        env:
-          USER: postgres
