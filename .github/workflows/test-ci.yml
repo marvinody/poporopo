@@ -41,3 +41,5 @@ jobs:
 
       - run: npm ci
       - run: npm run test
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
