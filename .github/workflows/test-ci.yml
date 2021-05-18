@@ -11,8 +11,10 @@ jobs:
       - uses: harmon758/postgresql-action@v1
         with:
           postgresql version: '11'
-          postgresql db: poporopo-test
+          postgresql db: 'test-db'
           postgresql user: root
           postgresql password: albino
       - run: npm ci
       - run: npm run test
+        env:
+          DATABASE_URL: 'postgresql://root:albino@localhost:5432/test-db'
