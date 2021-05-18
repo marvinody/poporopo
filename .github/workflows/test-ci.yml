@@ -1,11 +1,6 @@
 name: Test
 
-on:
-  push:
-    branches: [ $default-branch ]
-  pull_request:
-    branches: [ $default-branch ]
-
+on: [pull_request]
 jobs:
   Test:
     runs-on: ubuntu-latest
