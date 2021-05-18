@@ -10,9 +10,8 @@ jobs:
         image: postgres:10.8
         env:
           POSTGRES_USER: runner
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: runner1234
           POSTGRES_DB: 'poporopo-test'
-          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
         - 5432:5432
         # needed because the postgres container does not provide a healthcheck
@@ -24,22 +23,9 @@ jobs:
         with:
           node-version: '14'
 
-      # - name: Start PostgreSQL on Ubuntu
-      #   env:
-      #     POSTGRES_HOST_AUTH_METHOD: "trust"
-      #   run: |
-      #     sudo systemctl start postgresql.service
-      #     pg_isready
-      # # Change user name and password to meet your requirements
-      # - name: Create additional user
-      #   run: |
-      #     sudo -u postgres psql --command="CREATE USER runner" --command="\du"
-      # # Change database name to meet your requirements
-      # - name: Create additional database
-      #   run: |
-      #     sudo -u postgres createdb --owner=runner poporopo-test
-
       - run: npm ci
       - run: npm run test
         env:
-          POSTGRES_HOST_AUTH_METHOD: trust
+          DB_USER: runner
+          DB_PASS: runner1234
+
