@@ -207,7 +207,9 @@ describe('JSON routes', () => {
           .set({
             'x-apikey': 'FAKE_APIKEY'
           })
-          .send({})
+          .send({
+            dumb: 'body'
+          })
           .expect(400)
 
         expect(res.body).to.have.property(
@@ -222,7 +224,9 @@ describe('JSON routes', () => {
           .set({
             'x-apikey': 'FAKE_APIKEY'
           })
-          .send({})
+          .send({
+            dumb: 'body'
+          })
           .expect(400)
 
         expect(res.body).to.have.property(

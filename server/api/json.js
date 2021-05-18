@@ -8,6 +8,14 @@ const {addIDs, customTypeof, setWith} = require('./util')
 
 module.exports = router
 
+// setup a var for local var dumps
+router.use((req, res, next) => {
+  if (_.isUndefined(req.locals)) {
+    req.locals = {}
+  }
+  next()
+})
+
 router.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-apikey')
@@ -18,67 +26,74 @@ router.use((req, res, next) => {
   next()
 })
 
-router.get('/:jsonUUID', async (req, res, next) => {
-  try {
-    const json = await Json.findByPk(req.params.jsonUUID, {
-      attributes: ['data']
-    })
-
-    if (!json) {
-      throw new Error(`Could not find Data with ID of ${req.params.jsonUUID}`)
-    }
-
-    res.json(json.data)
-  } catch (err) {
-    next(err)
+const requireBody = () => (req, res, next) => {
+  if (_.isEmpty(req.body)) {
+    return next(new Error('Need to pass a JSON body'))
   }
-})
+  next()
+}
 
-router.put('/:jsonUUID', async (req, res, next) => {
-  try {
-    if (!req.body) {
-      throw new Error('Need to pass a JSON body')
-    }
+const requireApikey = () => (req, res, next) => {
+  if (_.isEmpty(req.headers['x-apikey'])) {
+    return next(new Error('Need to pass an apikey in header as "x-apikey"'))
+  }
+  req.locals.apikey = req.headers['x-apikey']
+  next()
+}
 
-    if (!req.headers['x-apikey']) {
-      throw new Error('Need to pass an apikey in header as "x-apikey"')
-    }
+const loadJson = (...attributes) => async (req, res, next) => {
+  const json = await Json.findByPk(req.params.jsonUUID, {
+    attributes
+  })
 
-    const apikey = req.headers['x-apikey']
+  if (!json) {
+    return next(
+      new Error(`Could not find Data with ID of ${req.params.jsonUUID}`)
+    )
+  }
+  req.locals.json = json
+  next()
+}
 
-    const json = await Json.findByPk(req.params.jsonUUID, {
-      attributes: ['apikey', 'id']
-    })
-
-    if (!json) {
-      throw new Error(`Could not find Data with ID of ${req.params.jsonUUID}`)
-    }
-
-    if (json.apikey !== apikey) {
-      throw new Error(
+const checkApikey = () => (req, res, next) => {
+  if (req.locals.json.apikey !== req.locals.apikey) {
+    return next(
+      new Error(
         'Mismatching apikey for given JSON ID, make sure this is your resource'
       )
-    }
-
-    const {obj, maxId} = addIDs(req.body)
-
-    const newJson = await json.update({
-      data: obj,
-      highestCreatedId: maxId
-    })
-    res.json(newJson.data)
-  } catch (err) {
-    next(err)
+    )
   }
+  next()
+}
+
+router.get('/:jsonUUID', loadJson('data'), (req, res) => {
+  res.json(req.locals.json.data)
 })
 
-// create new full resource
-router.post('/', async (req, res, next) => {
-  try {
-    if (!req.body) {
-      throw new Error('Need to pass a JSON body')
-    }
+router.put(
+  '/:jsonUUID',
+  requireBody(),
+  requireApikey(),
+  loadJson('apikey', 'id'),
+  checkApikey(),
+  async (req, res, next) => {
+    try {
+      const {obj, maxId} = addIDs(req.body)
 
+      const newJson = await req.locals.json.update({
+        data: obj,
+        highestCreatedId: maxId
+      })
+      res.json(newJson.data)
+    } catch (err) {
+      next(err)
+    }
+  }
+)
+
+// create new full resource
+router.post('/', requireBody(), async (req, res, next) => {
+  try {
     const {obj, maxId} = addIDs(req.body)
 
     const json = await Json.create({
@@ -119,153 +134,115 @@ const parentResourceFetcher = (root, path) => {
 }
 
 // create new sub resource
-router.post('/:jsonUUID/*', async (req, res, next) => {
-  try {
-    if (!req.body) {
-      throw new Error('Need to pass a JSON body')
+router.post(
+  '/:jsonUUID/*',
+  requireBody(),
+  requireApikey(),
+  loadJson('apikey', 'id', 'data', 'highestCreatedId'),
+  checkApikey(),
+  async (req, res, next) => {
+    try {
+      const {json} = req.locals
+
+      // cut off the json id from url
+      const path = req.url
+        .slice(`/${req.params.jsonUUID}/`.length)
+        .split('/')
+        .filter(p => p.length > 0)
+
+      const parent = parentResourceFetcher(json.data, path)
+
+      if (customTypeof(parent) !== 'array') {
+        throw new Error('Cannot POST to a non-array')
+      }
+
+      // add IDs if required...
+      const {maxId, obj} = addIDs(req.body, json.highestCreatedId, parent)
+      parent.push(obj)
+      await json.update({data: json.data, highestCreatedId: maxId})
+
+      res.status(201).json(obj)
+    } catch (err) {
+      next(err)
     }
-
-    if (!req.headers['x-apikey']) {
-      throw new Error('Need to pass an apikey in header as "x-apikey"')
-    }
-
-    const apikey = req.headers['x-apikey']
-
-    const json = await Json.findByPk(req.params.jsonUUID, {
-      attributes: ['apikey', 'id', 'data', 'highestCreatedId']
-    })
-
-    if (!json) {
-      throw new Error(`Could not find Data with ID of ${req.params.jsonUUID}`)
-    }
-
-    if (json.apikey !== apikey) {
-      throw new Error(
-        'Mismatching apikey for given JSON ID, make sure this is your resource'
-      )
-    }
-    // cut off the json id from url
-    const path = req.url
-      .slice(`/${req.params.jsonUUID}/`.length)
-      .split('/')
-      .filter(p => p.length > 0)
-
-    const parent = parentResourceFetcher(json.data, path)
-
-    if (customTypeof(parent) !== 'array') {
-      throw new Error('Cannot POST to a non-array')
-    }
-
-    // add IDs if required...
-    const {maxId, obj} = addIDs(req.body, json.highestCreatedId, parent)
-    parent.push(obj)
-    await json.update({data: json.data, highestCreatedId: maxId})
-
-    res.status(201).json(obj)
-  } catch (err) {
-    next(err)
   }
-})
+)
 
 // delete resource
-router.delete('/:jsonUUID/', async (req, res, next) => {
-  try {
-    if (!req.headers['x-apikey']) {
-      throw new Error('Need to pass an apikey in header as "x-apikey"')
+router.delete(
+  '/:jsonUUID/',
+  requireApikey(),
+  loadJson('apikey', 'id', 'data'),
+  checkApikey(),
+  async (req, res, next) => {
+    try {
+      const {json} = req.locals
+
+      await json.destroy()
+
+      res.json({deleted: json.data})
+    } catch (err) {
+      next(err)
     }
-
-    const apikey = req.headers['x-apikey']
-
-    const json = await Json.findByPk(req.params.jsonUUID, {
-      attributes: ['apikey', 'id', 'data']
-    })
-
-    if (!json) {
-      throw new Error(`Could not find Data with ID of ${req.params.jsonUUID}`)
-    }
-
-    if (json.apikey !== apikey) {
-      throw new Error(
-        'Mismatching apikey for given JSON ID, make sure this is your resource'
-      )
-    }
-
-    await json.destroy()
-
-    res.json({deleted: json.data})
-  } catch (err) {
-    next(err)
   }
-})
+)
 
 // delete subresource
-router.delete('/:jsonUUID/*', async (req, res, next) => {
-  try {
-    if (!req.headers['x-apikey']) {
-      throw new Error('Need to pass an apikey in header as "x-apikey"')
-    }
+router.delete(
+  '/:jsonUUID/*',
+  requireApikey(),
+  loadJson('apikey', 'id', 'data'),
+  checkApikey(),
+  async (req, res, next) => {
+    try {
+      const {json} = req.locals
 
-    const apikey = req.headers['x-apikey']
+      // cut off the json id from url
+      const path = req.url
+        .slice(`/${req.params.jsonUUID}/`.length)
+        .split('/')
+        .filter(p => p.length > 0)
 
-    const json = await Json.findByPk(req.params.jsonUUID, {
-      attributes: ['apikey', 'id', 'data']
-    })
+      const parentPath = path.slice(0, -1)
+      const childPath = path[path.length - 1]
+      // the last parameter specifies the id/key to delete, so we only want to get parent
+      const parent = parentResourceFetcher(json.data, parentPath)
 
-    if (!json) {
-      throw new Error(`Could not find Data with ID of ${req.params.jsonUUID}`)
-    }
+      const parentType = customTypeof(parent)
 
-    if (json.apikey !== apikey) {
-      throw new Error(
-        'Mismatching apikey for given JSON ID, make sure this is your resource'
-      )
-    }
+      if (parentType === 'array') {
+        // eslint-disable-next-line eqeqeq
+        const child = parent.find(el => el.id == childPath)
+        if (!child) {
+          throw new Error(`Unfound array element by id: "${childPath}"`)
+        }
 
-    // cut off the json id from url
-    const path = req.url
-      .slice(`/${req.params.jsonUUID}/`.length)
-      .split('/')
-      .filter(p => p.length > 0)
+        const filtered = parent.filter(el => el.id != childPath)
 
-    const parentPath = path.slice(0, -1)
-    const childPath = path[path.length - 1]
-    // the last parameter specifies the id/key to delete, so we only want to get parent
-    const parent = parentResourceFetcher(json.data, parentPath)
+        // overwrite existing array with this new filtered array to remove the element
+        const updated = setWith(json.data, parentPath, filtered)
 
-    const parentType = customTypeof(parent)
+        await json.update({data: updated})
 
-    if (parentType === 'array') {
-      // eslint-disable-next-line eqeqeq
-      const child = parent.find(el => el.id == childPath)
-      if (!child) {
-        throw new Error(`Unfound array element by id: "${childPath}"`)
+        res.json({deleted: child})
+      } else if (parentType === 'object') {
+        if (!(childPath in parent)) {
+          throw new Error(`Unfound object property by key: "${childPath}"`)
+        }
+
+        const child = parent[childPath]
+
+        delete parent[childPath]
+
+        const updated = setWith(json.data, parentPath, parent)
+
+        await json.update({data: updated})
+        res.json({deleted: child})
+      } else {
+        throw new Error('Cannot delete requested path')
       }
-
-      const filtered = parent.filter(el => el.id != childPath)
-
-      // overwrite existing array with this new filtered array to remove the element
-      const updated = setWith(json.data, parentPath, filtered)
-
-      await json.update({data: updated})
-
-      res.json({deleted: child})
-    } else if (parentType === 'object') {
-      if (!(childPath in parent)) {
-        throw new Error(`Unfound object property by key: "${childPath}"`)
-      }
-
-      const child = parent[childPath]
-
-      delete parent[childPath]
-
-      const updated = setWith(json.data, parentPath, parent)
-
-      await json.update({data: updated})
-      res.json({deleted: child})
-    } else {
-      throw new Error('Cannot delete requested path')
+    } catch (err) {
+      next(err)
     }
-  } catch (err) {
-    next(err)
   }
-})
+)
