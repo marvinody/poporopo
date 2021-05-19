@@ -66,10 +66,12 @@ const checkApikey = () => (req, res, next) => {
   next()
 }
 
+// get full resource
 router.get('/:jsonUUID', loadJson('data'), (req, res) => {
   res.json(req.locals.json.data)
 })
 
+// update full resource
 router.put(
   '/:jsonUUID',
   requireBody(),
@@ -132,6 +134,20 @@ const parentResourceFetcher = (root, path) => {
     throw new Error('Path Access Error!')
   }
 }
+
+router.get('/:jsonUUID/*', loadJson('data'), (req, res) => {
+  const {json} = req.locals
+
+  // cut off the json id from url
+  const path = req.url
+    .slice(`/${req.params.jsonUUID}/`.length)
+    .split('/')
+    .filter(p => p.length > 0)
+
+  const child = parentResourceFetcher(json.data, path)
+
+  res.json(child)
+})
 
 // create new sub resource
 router.post(
