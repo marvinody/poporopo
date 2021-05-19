@@ -832,5 +832,170 @@ describe('JSON routes', () => {
         expect(dummyRow.data).to.deep.equal(preDummy)
       })
     })
+
+    describe('PUT /api/json/:jsonUUID/<nestedResource>', () => {
+      beforeEach(async () => {
+        dummyRow = await Json.create({
+          data: {
+            news: [],
+            posts: [
+              {
+                id: 1,
+                name: 'yo wat up',
+                comments: [
+                  {
+                    id: 2,
+                    text: 'good test',
+                    likes: []
+                  }
+                ]
+              }
+            ]
+          },
+          highestCreatedId: 3
+        })
+      })
+
+      it('PUT /api/json/:jsonUUID/<nestedResource> - array overwrite', async () => {
+        const res = await request(app)
+          .put(`/api/json/${dummyRow.id}/news/`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .send([{dumbObj: 1}, {dumbObj: 2}])
+          .expect(200)
+
+        expect(res.body).to.deep.equal([
+          {dumbObj: 1, id: 3},
+          {dumbObj: 2, id: 4}
+        ])
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data)
+          .to.have.property('news')
+          .which.is.an('array')
+          .which.has.lengthOf(2)
+
+        expect(dummyRow).to.have.property('highestCreatedId', 5)
+      })
+
+      it('PUT /api/json/:jsonUUID/<nestedResource> - object overwrite', async () => {
+        const res = await request(app)
+          .put(`/api/json/${dummyRow.id}/posts/1`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .send({
+            name: 'yo wat up homie',
+            comments: []
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          // ensure that it respects an already set ID
+          id: dummyRow.data.posts[0].id,
+          name: 'yo wat up homie',
+          comments: []
+        })
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data)
+          .to.have.property('posts')
+          .which.is.an('array')
+          .which.has.lengthOf(1)
+
+        expect(dummyRow.data).to.have.nested.property(
+          'posts[0].name',
+          'yo wat up homie'
+        )
+        expect(dummyRow.data).to.have.nested.property('posts[0].id', 1)
+
+        // should still be the same since no changes
+        expect(dummyRow).to.have.property('highestCreatedId', 3)
+      })
+
+      it('PUT /api/json/:jsonUUID/<nestedResource> - object overwrite + array', async () => {
+        const res = await request(app)
+          .put(`/api/json/${dummyRow.id}/posts/1`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .send({
+            name: 'yo wat up homie',
+            comments: [{name: 'yo'}, {name: 'wat'}, {name: 'up'}]
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          // ensure that it respects an already set ID
+          id: dummyRow.data.posts[0].id,
+          name: 'yo wat up homie',
+          comments: [
+            {name: 'yo', id: 3},
+            {name: 'wat', id: 4},
+            {name: 'up', id: 5}
+          ]
+        })
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data)
+          .to.have.property('posts')
+          .which.is.an('array')
+          .which.has.lengthOf(1)
+
+        expect(dummyRow.data)
+          .to.have.nested.property('posts[0]')
+          .which.deep.equals({
+            id: 1,
+            name: 'yo wat up homie',
+            comments: [
+              {name: 'yo', id: 3},
+              {name: 'wat', id: 4},
+              {name: 'up', id: 5}
+            ]
+          })
+
+        // should still be the same since no changes
+        expect(dummyRow).to.have.property('highestCreatedId', 6)
+      })
+
+      it('PUT /api/json/:jsonUUID/<nestedResource> - object total write', async () => {
+        const res = await request(app)
+          .put(`/api/json/${dummyRow.id}/posts/1`)
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .send({
+            author: 'me!'
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          // ensure that it respects an already set ID
+          id: dummyRow.data.posts[0].id,
+          author: 'me!'
+        })
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data)
+          .to.have.property('posts')
+          .which.is.an('array')
+          .which.has.lengthOf(1)
+
+        expect(dummyRow.data)
+          .to.have.nested.property('posts[0]')
+          .which.deep.equals({
+            id: 1,
+            author: 'me!'
+          })
+
+        // should still be the same since no changes
+        expect(dummyRow).to.have.property('highestCreatedId', 3)
+      })
+    })
   })
 })
