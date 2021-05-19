@@ -176,6 +176,59 @@ describe('JSON routes', () => {
       })
     })
 
+    describe('GET /api/json/:jsonUUID/<nestedResource>', () => {
+      it('200 GET /api/json/:jsonUUID/dummyData', async () => {
+        const res = await request(app)
+          .get(`/api/json/${dummyRow.id}/dummyData`)
+          .expect(200)
+
+        expect(res.body).to.deep.equal('yo what up')
+      })
+
+      it('200 GET /api/json/:jsonUUID/array/1', async () => {
+        const res = await request(app)
+          .get(`/api/json/${dummyRow.id}/array/1`)
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          arrayEles: 'getAnIdOnCreate',
+          but: {nestedResources: 'doNot'},
+          id: 1
+        })
+      })
+
+      it('200 GET /api/json/:jsonUUID/array/1/but', async () => {
+        const res = await request(app)
+          .get(`/api/json/${dummyRow.id}/array/1/but`)
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          nestedResources: 'doNot'
+        })
+      })
+
+      it('200 GET /api/json/:jsonUUID/array/string-key', async () => {
+        const res = await request(app)
+          .get(`/api/json/${dummyRow.id}/array/string-key`)
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          butYouCanGiveYourOwn: 'like this',
+          id: 'string-key'
+        })
+      })
+
+      it('400 GET /api/json:jsonUUID/<nestedResource>', async () => {
+        const res = await request(app)
+          .get(`/api/json/${fakeUUID}/fakePath`)
+          .expect(400)
+
+        expect(res.body).to.deep.equal({
+          error: `Could not find Data with ID of ${fakeUUID}`
+        })
+      })
+    })
+
     describe('PUT /api/json/:jsonUUID', () => {
       it('200 PUT /api/json/:jsonUUID', async () => {
         const overwritingData = [{obj: 'one'}, {obj: 'two'}]
