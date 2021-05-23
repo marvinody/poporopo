@@ -79,8 +79,19 @@ const setWith = (obj, path, value) => {
   }
 }
 
+const mergeWith = (oldObj, newObj) => {
+  if (customTypeof(oldObj) !== 'object' || customTypeof(newObj) !== 'object') {
+    throw new Error('Both things to merge must be objects')
+  }
+  return {
+    ...oldObj,
+    ...newObj
+  }
+}
+
 module.exports = {
   addIDs,
   customTypeof,
-  setWith
+  setWith,
+  mergeWith
 }

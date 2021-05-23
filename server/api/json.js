@@ -263,7 +263,7 @@ router.delete(
   }
 )
 
-// update subresource
+// PUT (overwrite) subresource
 router.put(
   '/:jsonUUID/*',
   requireApikey(),
@@ -292,7 +292,7 @@ router.put(
       // add IDs if required...
       const {maxId, obj} = addIDs(req.body, json.highestCreatedId, parent)
 
-      const updated = setWith(json.data, path, req.body)
+      const updated = setWith(json.data, path, obj)
 
       await json.update({data: updated, highestCreatedId: maxId})
 
@@ -302,3 +302,43 @@ router.put(
     }
   }
 )
+
+// // merge (overwrite) subresource
+// router.put(
+//   '/:jsonUUID/*',
+//   requireApikey(),
+//   loadJson('apikey', 'id', 'data', 'highestCreatedId'),
+//   checkApikey(),
+//   async (req, res, next) => {
+//     try {
+//       const { json } = req.locals
+
+//       // cut off the json id from url
+//       const path = req.url
+//         .slice(`/${req.params.jsonUUID}/`.length)
+//         .split('/')
+//         .filter(p => p.length > 0)
+
+//       const parentPath = path.slice(0, -1)
+
+//       const parent = parentResourceFetcher(json.data, parentPath)
+//       const currentChild = parentResourceFetcher(json.data, path)
+
+//       // if user doesn't supply any ID, let's make sure it stays as the last known one
+//       if (!req.body.id) {
+//         req.body.id = currentChild.id
+//       }
+
+//       // add IDs if required...
+//       const { maxId, obj } = addIDs(req.body, json.highestCreatedId, parent)
+
+//       const updated = setWith(json.data, path, req.body)
+
+//       await json.update({ data: updated, highestCreatedId: maxId })
+
+//       res.json(obj)
+//     } catch (err) {
+//       next(err)
+//     }
+//   }
+// )
