@@ -4,7 +4,7 @@ const router = require('express').Router()
 const {Json} = require('../db/models')
 const _ = require('lodash')
 
-const {addIDs, customTypeof, setWith} = require('./util')
+const {addIDs, customTypeof, setWith, mergeWith} = require('./util')
 
 module.exports = router
 
@@ -303,42 +303,47 @@ router.put(
   }
 )
 
-// // merge (overwrite) subresource
-// router.put(
-//   '/:jsonUUID/*',
-//   requireApikey(),
-//   loadJson('apikey', 'id', 'data', 'highestCreatedId'),
-//   checkApikey(),
-//   async (req, res, next) => {
-//     try {
-//       const { json } = req.locals
+// PATCH (merge) subresource
+router.patch(
+  '/:jsonUUID/*',
+  requireApikey(),
+  loadJson('apikey', 'id', 'data', 'highestCreatedId'),
+  checkApikey(),
+  async (req, res, next) => {
+    try {
+      const {json} = req.locals
 
-//       // cut off the json id from url
-//       const path = req.url
-//         .slice(`/${req.params.jsonUUID}/`.length)
-//         .split('/')
-//         .filter(p => p.length > 0)
+      // cut off the json id from url
+      const path = req.url
+        .slice(`/${req.params.jsonUUID}/`.length)
+        .split('/')
+        .filter(p => p.length > 0)
 
-//       const parentPath = path.slice(0, -1)
+      const parentPath = path.slice(0, -1)
 
-//       const parent = parentResourceFetcher(json.data, parentPath)
-//       const currentChild = parentResourceFetcher(json.data, path)
+      const parent = parentResourceFetcher(json.data, parentPath)
+      const currentChild = parentResourceFetcher(json.data, path)
 
-//       // if user doesn't supply any ID, let's make sure it stays as the last known one
-//       if (!req.body.id) {
-//         req.body.id = currentChild.id
-//       }
+      // if user doesn't supply any ID, let's make sure it stays as the last known one
+      if (!req.body.id) {
+        req.body.id = currentChild.id
+      }
 
-//       // add IDs if required...
-//       const { maxId, obj } = addIDs(req.body, json.highestCreatedId, parent)
+      // take current as a base and update any properties
+      const merged = mergeWith(currentChild, req.body)
 
-//       const updated = setWith(json.data, path, req.body)
+      // add IDs if required...
+      const {maxId, obj} = addIDs(merged, json.highestCreatedId, parent)
 
-//       await json.update({ data: updated, highestCreatedId: maxId })
+      // overwrite full child with new set
+      const updated = setWith(json.data, path, obj)
 
-//       res.json(obj)
-//     } catch (err) {
-//       next(err)
-//     }
-//   }
-// )
+      await json.update({data: updated, highestCreatedId: maxId})
+
+      // return full merge back
+      res.json(obj)
+    } catch (err) {
+      next(err)
+    }
+  }
+)

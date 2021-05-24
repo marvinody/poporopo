@@ -997,5 +997,209 @@ describe('JSON routes', () => {
         expect(dummyRow).to.have.property('highestCreatedId', 3)
       })
     })
+
+    describe('PATCH /api/json/:jsonUUID/<nestedResource>', () => {
+      beforeEach(async () => {
+        dummyRow = await Json.create({
+          data: {
+            posts: [
+              {
+                id: 1,
+                name: 'yo wat up',
+                comments: [
+                  {
+                    id: 2,
+                    text: 'good test',
+                    likes: [],
+                    replies: [
+                      {
+                        id: 'dumb-username',
+                        content: 'yes',
+                        mentions: [
+                          {
+                            user: '@everyone',
+                            id: 3
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          highestCreatedId: 4
+        })
+      })
+
+      it('PATCH /api/json/:jsonUUID/<nestedResource> - nested object merge', async () => {
+        const res = await request(app)
+          .patch(
+            `/api/json/${dummyRow.id}/posts/1/comments/2/replies/dumb-username`
+          )
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .send({
+            content: 'UPDATED CONTENT'
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          // ensure that it respects an already set ID
+          id: dummyRow.data.posts[0].comments[0].replies[0].id,
+          content: 'UPDATED CONTENT',
+          mentions: [
+            {
+              user: '@everyone',
+              id: 3
+            }
+          ]
+        })
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data).to.deep.equals({
+          posts: [
+            {
+              id: 1,
+              name: 'yo wat up',
+              comments: [
+                {
+                  id: 2,
+                  text: 'good test',
+                  likes: [],
+                  replies: [
+                    {
+                      id: 'dumb-username',
+                      content: 'UPDATED CONTENT',
+                      mentions: [
+                        {
+                          user: '@everyone',
+                          id: 3
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        })
+
+        // should still be the same since no changes
+        expect(dummyRow).to.have.property('highestCreatedId', 4)
+      })
+
+      it('PATCH /api/json/:jsonUUID/<nestedResource> - nested array overwrite', async () => {
+        const res = await request(app)
+          .patch(
+            `/api/json/${dummyRow.id}/posts/1/comments/2/replies/dumb-username`
+          )
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .send({
+            mentions: []
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          // ensure that it respects an already set ID
+          id: dummyRow.data.posts[0].comments[0].replies[0].id,
+          content: 'yes',
+          mentions: []
+        })
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data).to.deep.equals({
+          posts: [
+            {
+              id: 1,
+              name: 'yo wat up',
+              comments: [
+                {
+                  id: 2,
+                  text: 'good test',
+                  likes: [],
+                  replies: [
+                    {
+                      id: 'dumb-username',
+                      content: 'yes',
+                      mentions: []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        })
+
+        // should still be the same since no changes
+        expect(dummyRow).to.have.property('highestCreatedId', 4)
+      })
+
+      it('PATCH /api/json/:jsonUUID/<nestedResource> - nested array overwrite - direct', async () => {
+        const res = await request(app)
+          .patch(
+            `/api/json/${dummyRow.id}/posts/1/comments/2/replies/dumb-username/`
+          )
+          .set({
+            'x-apikey': dummyRow.apikey
+          })
+          .send({
+            newProp: 'yes'
+          })
+          .expect(200)
+
+        expect(res.body).to.deep.equal({
+          // ensure that it respects an already set ID
+          id: dummyRow.data.posts[0].comments[0].replies[0].id,
+          content: 'yes',
+          mentions: [
+            {
+              user: '@everyone',
+              id: 3
+            }
+          ],
+          newProp: 'yes'
+        })
+
+        await dummyRow.reload()
+
+        expect(dummyRow.data).to.deep.equals({
+          posts: [
+            {
+              id: 1,
+              name: 'yo wat up',
+              comments: [
+                {
+                  id: 2,
+                  text: 'good test',
+                  likes: [],
+                  replies: [
+                    {
+                      id: 'dumb-username',
+                      content: 'yes',
+                      mentions: [
+                        {
+                          user: '@everyone',
+                          id: 3
+                        }
+                      ],
+                      newProp: 'yes'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        })
+
+        // should still be the same since no changes
+        expect(dummyRow).to.have.property('highestCreatedId', 4)
+      })
+    })
   })
 })
